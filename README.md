@@ -29,6 +29,8 @@ Cartify Backend is a Node.js and Express.js based REST API for an e-commerce app
 * Order Management
 * Razorpay Payment Integration
 * Email Notifications
+* Product controller
+* Database for products
 
 ## Project Structure
 

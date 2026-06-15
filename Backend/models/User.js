@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
     },
     verified:{
         type:Boolean,
-        defualt:false
+        default:false
     }
 });
 

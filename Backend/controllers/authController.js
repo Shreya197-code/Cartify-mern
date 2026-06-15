@@ -3,82 +3,116 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 
-const generateToken = (id) =>{
-    return jwt.sign({id},process.env.JWT_SECRET,{
-        expiresIn:'30d'
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
     });
-}
+};
 
+// REGISTER USER
 const registerUser = async (req, res) => {
+
+    console.log("REGISTER BODY:", req.body); //
+
     const { username, email, password } = req.body;
 
     try {
-        const existingUser = await User.findOne({ email });
+        // check duplicate user (email OR username)
+        const existingUser = await User.findOne({
+            $or: [{ email }, { username }]
+        });
 
-        if (existingUser)
+        if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
+        }
 
-const salt = await bcrypt.genSalt(10);
+        // hash password
+        const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-       const user = User.create({ username, email, password: hashedPassword });
-       if(user){
-        const otp=Math.floor(100000 + Math.random() * 900000).toString();
-        const message = `Welcome to Cartify! , ${username}! Thank you for registering with us. We are excited to have you on board. To complete your registration, please use the following One-Time Password (OTP) to verify your email address:
-        Your OTP for Cartify registration is: ${otp}`;
+        // create user
+        const user = await User.create({
+            username,
+            email,
+            password: hashedPassword
+        });
 
-        await sendEmail(email, 'Welcome to Cartify - Verify Your Email', message);
+        // OTP (optional feature)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        res.status(201).json({
+        const message = `Welcome to Cartify ${username}! 
+Your OTP is: ${otp}`;
+
+        // email (safe, won't break API)
+        try {
+            await sendEmail(email, 'Welcome to Cartify', message);
+        } catch (err) {
+            console.log("Email failed but user created:", err.message);
+        }
+
+        return res.status(201).json({
             _id: user._id,
-            name: user.name,
+            username: user.username,
             email: user.email,
             role: user.role,
             token: generateToken(user._id)
         });
-    } 
-    else{
-        res.status(400).json({ message: 'Invalid user data' });
-    }
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
+        console.log("REGISTER ERROR:", error);
 
-
-//Login user
-
-const loginuser = async (req, res) => {
-    const { email, password } = req.body;
-    try{
-        const user=await User.findOne({email});
-        if(user && (await bcrypt.compare(password,user.password))){
-            res.json({
-                id:user._id,
-                username:user.username,
-                email:user.email,
-                role:user.role,
-                token:generateToken(user._id)
+        if (error.code === 11000) {
+            return res.status(400).json({
+                message: "Duplicate key error (user already exists)"
             });
         }
-        else{
-            res.status(400).json({message:'Invalid credentials'});
-        }
-    }
-    catch(error){
-        res.status(500).json({message:'Server error'});
+
+        return res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
     }
 };
 
+// LOGIN USER
+const loginuser = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (user && (await bcrypt.compare(password, user.password))) {
+            return res.json({
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                token: generateToken(user._id)
+            });
+        }
+
+        return res.status(400).json({ message: 'Invalid credentials' });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// GET USER (protected)
 const getUser = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        res.json(user);
+
+        return res.json(user);
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.log(error);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 

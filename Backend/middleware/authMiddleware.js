@@ -1,7 +1,7 @@
 const jwt=require('jsonwebtoken');
 const User=require('../models/User');
 const bcrypt=require('bcryptjs');
-const sendEmail = require('../utils/sendmail');
+const sendEmail = require('../utils/sendEmail');
 
 const protect = async (req, res, next) => {
     let token;

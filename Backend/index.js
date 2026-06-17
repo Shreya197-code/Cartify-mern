@@ -26,9 +26,9 @@ app.get('/',(req,res)=>{
 
 app.use('/api/auth',require('./routes/auth'));
 app.use('/api/products',require('./routes/product.js'));
-app.use('/api/orders',require('./routes/order'));
-app.use('/api/payment',require('./routes/payment'));
-app.use('/api/admin',require('./routes/admin'));
+// app.use('/api/orders',require('./routes/order'));
+// app.use('/api/payment',require('./routes/payment'));
+// app.use('/api/admin',require('./routes/admin'));
 
 const PORT=process.env.PORT||3000;
 app.listen(PORT,()=>{

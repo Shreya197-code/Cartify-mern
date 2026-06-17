@@ -32,6 +32,8 @@ Cartify Backend is a Node.js and Express.js based REST API for an e-commerce app
 * Product controller
 * Database for products
 * Add cloudinary images
+* Hashed OTP
+
 
 ## Project Structure
 

@@ -28,7 +28,6 @@ const serverError = (res, error) => {
 // ================= REGISTER =================
 
 const registerUser = async (req, res) => {
-    console.log('REGISTER BODY:', req.body);
 
     const { username, email, password } = req.body;
 

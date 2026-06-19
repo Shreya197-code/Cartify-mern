@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
-console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
 
 const express=require('express');
 const cors=require('cors');
@@ -24,9 +24,9 @@ app.get('/',(req,res)=>{
     res.send('Cartify Backend is running');
 });
 
-app.use('/api/auth',require('./routes/auth'));
-app.use('/api/products',require('./routes/product.js'));
-// app.use('/api/orders',require('./routes/order'));
+app.use('/api/auth',require('./routes/authRoutes.js'));
+app.use('/api/products',require('./routes/productRoutes.js'));
+app.use('/api/orders',require('./routes/orderRoutes.js'));
 // app.use('/api/payment',require('./routes/payment'));
 // app.use('/api/admin',require('./routes/admin'));
 

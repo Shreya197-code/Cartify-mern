@@ -24,11 +24,11 @@ app.get('/',(req,res)=>{
     res.send('Cartify Backend is running');
 });
 
-app.use('/api/auth',require('./routes/authRoutes.js'));
-app.use('/api/products',require('./routes/productRoutes.js'));
-app.use('/api/orders',require('./routes/orderRoutes.js'));
+app.use('/api/auth',require('./routes/authRoutes'));
+app.use('/api/products',require('./routes/productRoutes'));
+app.use('/api/orders',require('./routes/orderRoutes'));
 // app.use('/api/payment',require('./routes/payment'));
-// app.use('/api/admin',require('./routes/admin'));
+ app.use('/api/admin',require('./routes/analyticsRoutes'));
 
 const PORT=process.env.PORT||3000;
 app.listen(PORT,()=>{

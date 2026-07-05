@@ -18,7 +18,7 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-        return res.status(401).json({ message: 'Invalid email or password' });
+        return res.status(401).json({ message: 'Authentication token missing' });
     }
 };
 

@@ -117,7 +117,7 @@ const getOrders = async (req, res) => {
 
         const orders = await Order
             .find({})
-            .populate('user', 'id name');
+            .populate('user', 'username email role');
 
         return res.status(200).json(orders);
 

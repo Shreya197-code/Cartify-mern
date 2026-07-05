@@ -1,0 +1,36 @@
+{
+  "name": "cartify-mern",
+  "version": "1.0.0",
+  "description": "Cartify Backend is a Node.js and Express.js based REST API for an e-commerce application. It provides authentication, user management, product management, order processing, and payment integration.",
+  "keywords": [
+    "microservice"
+  ],
+  "homepage": "https://github.com/Shreya197-code/Cartify-mern#readme",
+  "bugs": {
+    "url": "https://github.com/Shreya197-code/Cartify-mern/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shreya197-code/Cartify-mern.git"
+  },
+  "license": "ISC",
+  "author": "shreya sah",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "install": "cd backend && npm install && cd ../frontend && npm install",
+    "dev-server": "cd backend && npm run dev",
+    "dev:client": "cd frontend && npm start",
+    "dev": "concurrently \"npm run dev-server\" \"npm run dev:client\"",
+    "build": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.3",
+    "react-router-dom": "^7.18.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.17"
+  }
+}

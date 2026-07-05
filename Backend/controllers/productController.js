@@ -58,7 +58,7 @@ const updateProduct = async (req,res)=>{
                 console.log(result);
                 product.imageUrl=result.secure_url;
             }
-            const updatedProduct= await product.save;
+            const updatedProduct= await product.save();
             res.json(updatedProduct);
         
         } else {
@@ -73,7 +73,7 @@ const deleteProduct =  async(req,res)=> {
     try{
         const product = await Product.findById(req.params.id);
         if(product){
-            await Product.deleteOne();
+            await Product.deleteOne({ _id: req.params.id });
             res.json({message: 'Product deleted successfully'});
         } else {
             res.status(404).json({message: 'Product not found'});

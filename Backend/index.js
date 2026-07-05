@@ -14,7 +14,13 @@ console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "LOADED" : "NOT LOADED");
 connectDB();
 
 const app=express();
-app.use(cors());
+app.use(cors(
+    {
+        origin: ['http://localhost:3000','https://127.0.0.1:3000'],
+        methods:['GET','POST','PUT','DELETE'],
+       credentials: true
+    }
+));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
@@ -30,7 +36,7 @@ app.use('/api/orders',require('./routes/orderRoutes'));
 // app.use('/api/payment',require('./routes/payment'));
  app.use('/api/admin',require('./routes/analyticsRoutes'));
 
-const PORT=process.env.PORT||3000;
+const PORT=process.env.PORT||5000;
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
 });

@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import VerifyOtp from "./pages/VerifyOtp";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProductDetail from "./pages/ProductDetail";
@@ -32,6 +33,7 @@ function App() {
 <Route path="/register" element={<Register />} />
 <Route path="/verify-otp" element={<VerifyOtp />} />
 <Route path="/forgot-password" element={<ForgotPassword />} />
+  <Route path="/reset-password/:token" element={<ResetPassword />} />
 <Route path="/profile" element={<Profile />} />
 <Route path="/admin" element={<AdminDashboard />} />
 <Route path="/shop" element={<Shop />} />

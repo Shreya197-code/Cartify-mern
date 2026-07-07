@@ -222,7 +222,7 @@ const forgotPassword = async (req, res) => {
         await user.save();
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
         const message = `You requested a password reset for your Cartify account.
 Please click the link below to reset your password (valid for 1 hour):
@@ -238,6 +238,42 @@ If you did not request this, please ignore this email.`;
         }
 
         return res.status(200).json({ message: 'If the email exists, a reset link has been sent' });
+
+    } catch (error) {
+        return serverError(res, error);
+    }
+};
+
+// ================= RESET PASSWORD =================
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        if (!token) return res.status(400).json({ message: 'Token is required' });
+        if (!password) return res.status(400).json({ message: 'Password is required' });
+        if (typeof password !== 'string' || password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpiry: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired token' });
+        }
+
+        // hash new password and clear reset fields
+        user.password = await bcrypt.hash(password, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpiry = undefined;
+
+        await user.save();
+
+        return res.status(200).json({ message: 'Password reset successful' });
 
     } catch (error) {
         return serverError(res, error);
@@ -318,6 +354,7 @@ const changePassword = async (req, res) => {
         verifyOtp,
         getUser,
         forgotPassword,
+        resetPassword,
         updateProfile,
         changePassword
     };

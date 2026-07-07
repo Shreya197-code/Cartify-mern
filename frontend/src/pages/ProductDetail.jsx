@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { toast } from 'react-toastify';
 import { addToCart } from "../redux/cartSlice";
 import Footer from "../components/Footer";
+import { AuthContext } from "../context/AuthContext";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
 
+  const { user } = useContext(AuthContext);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [purchased, setPurchased] = useState(false);
+  const [ratingInput, setRatingInput] = useState(5);
+  const [commentInput, setCommentInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -17,6 +26,19 @@ const ProductDetail = () => {
         const res = await fetch(`/api/products/${id}`);
         const data = await res.json();
         setProduct(data);
+
+        // if logged in, check purchase status
+        if (user && user.token) {
+          try {
+            const pr = await fetch(`/api/products/${id}/purchased`, {
+              headers: { Authorization: `Bearer ${user.token}` },
+            });
+            const pj = await pr.json();
+            setPurchased(pj.purchased);
+          } catch (e) {
+            console.error('purchase check failed', e);
+          }
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -25,7 +47,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, user]);
 
  const handleAddToCart = () => {
   dispatch(
@@ -38,7 +60,7 @@ const ProductDetail = () => {
     })
   );
 
-  alert("Product added to cart!");
+  toast.success("Product added to cart!");
 };
 
   if (loading) {
@@ -87,7 +109,7 @@ const ProductDetail = () => {
             <div className="flex items-center space-x-2">
               <span className="text-yellow-500 text-xl">⭐</span>
               <span className="font-medium">
-                {product.rating?.rate} ({product.rating?.count} Reviews)
+                {product.rating || 0} ({product.numReviews || 0} Reviews)
               </span>
             </div>
 
@@ -103,6 +125,106 @@ const ProductDetail = () => {
             >
               Add to Cart
             </button>
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-10 bg-white shadow-lg rounded-xl p-6">
+          <h2 className="text-2xl font-semibold mb-4">Reviews</h2>
+
+          {product.reviews && product.reviews.length === 0 && (
+            <p className="text-gray-600">No reviews yet.</p>
+          )}
+
+          {product.reviews && product.reviews.length > 0 && (
+            <div className="space-y-4">
+              {product.reviews.map((r) => (
+                <div key={r._id || r.user} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{r.name}</div>
+                    <div className="text-yellow-500">{'★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)}</div>
+                  </div>
+                  <div className="text-sm text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
+                  <p className="mt-2 text-gray-700">{r.comment}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Review form */}
+          <div className="mt-6">
+            {!user && (
+              <p className="text-gray-600">Please login to write a review.</p>
+            )}
+
+            {user && !purchased && (
+              <p className="text-gray-600">You must purchase this product to leave a review.</p>
+            )}
+
+            {user && purchased && (
+              // check if user already reviewed
+              (() => {
+                const already = product.reviews && product.reviews.find(r => r.user === user.id || r.user === user._id);
+                if (already) {
+                  return <p className="text-gray-600">You have already reviewed this product.</p>;
+                }
+
+                return (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setSubmitError('');
+                    setSubmitSuccess('');
+                    setSubmitting(true);
+                    try {
+                      const res = await fetch(`/api/products/${id}/reviews`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${user.token}`
+                        },
+                        body: JSON.stringify({ rating: ratingInput, comment: commentInput })
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setSubmitSuccess(data.message || 'Review added');
+                        // refresh product reviews
+                        const refreshed = await fetch(`/api/products/${id}`);
+                        const pd = await refreshed.json();
+                        setProduct(pd);
+                      } else {
+                        setSubmitError(data.message || 'Unable to submit review');
+                      }
+                    } catch (err) {
+                      setSubmitError('Network error. Please try again.');
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                      <select value={ratingInput} onChange={(e) => setRatingInput(Number(e.target.value))} className="w-32 px-3 py-2 border rounded-lg">
+                        <option value={5}>5 - Excellent</option>
+                        <option value={4}>4 - Good</option>
+                        <option value={3}>3 - Average</option>
+                        <option value={2}>2 - Poor</option>
+                        <option value={1}>1 - Terrible</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
+                      <textarea value={commentInput} onChange={(e) => setCommentInput(e.target.value)} className="w-full px-4 py-3 border rounded-lg" rows={4} />
+                    </div>
+
+                    {submitError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</div>}
+                    {submitSuccess && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">{submitSuccess}</div>}
+
+                    <button type="submit" disabled={submitting} className="bg-black text-white px-6 py-2 rounded-lg">{submitting ? 'Submitting...' : 'Submit Review'}</button>
+                  </form>
+                );
+              })()
+            )}
+
           </div>
         </div>
       </div>

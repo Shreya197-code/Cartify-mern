@@ -1,5 +1,6 @@
 import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 import Footer from "../components/Footer";
 import { AuthContext } from "../context/AuthContext";
 
@@ -27,14 +28,14 @@ const Login = () => {
       if (res.ok) {
         login(data, data.token);
 
-        alert("Login Successful!");
+        toast.success("Login Successful!");
         navigate("/");
       } else {
-        alert(data.message || "Invalid email or password");
+        toast.error(data.message || "Invalid email or password");
       }
     } catch (error) {
       console.error(error);
-      alert("Something went wrong!");
+      toast.error("Something went wrong!");
     }
   };
 

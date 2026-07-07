@@ -5,16 +5,28 @@ import AuthProvider from './context/AuthContext';
 import "./index.css";
 import { Provider } from 'react-redux';
 import store from './redux/store';
-
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-<Provider store={store}>
+  <Provider store={store}>
     <AuthProvider>
-       <App />
+      <App />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </AuthProvider>
-   
   </Provider>
 );
 

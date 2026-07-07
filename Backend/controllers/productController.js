@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const cloudinary=require('../config/cloudinary');
 
 const getProducts = async (req, res) => {
@@ -85,4 +86,60 @@ const deleteProduct =  async(req,res)=> {
     }
 };
 
-module.exports = {getProducts, getProductById, createProduct, updateProduct, deleteProduct};
+// ================= REVIEWS =================
+
+const checkPurchase = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const order = await Order.findOne({ user: req.user.id, 'items.productId': productId });
+        const purchased = !!order;
+        return res.json({ purchased });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const addReview = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const { rating, comment } = req.body;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) return res.status(404).json({ message: 'Product not found' });
+
+        // ensure the user purchased the product
+        const order = await Order.findOne({ user: req.user.id, 'items.productId': productId });
+        if (!order) return res.status(403).json({ message: 'You can only review products you purchased' });
+
+        // prevent duplicate review
+        const existing = product.reviews.find(r => r.user.toString() === req.user.id);
+        if (existing) return res.status(400).json({ message: 'You have already reviewed this product' });
+
+        const review = {
+            user: req.user.id,
+            name: req.user.username || req.user.email || 'User',
+            rating: Number(rating),
+            comment: comment || ''
+        };
+
+        product.reviews.push(review);
+        product.numReviews = product.reviews.length;
+        const avg = product.reviews.reduce((acc, r) => acc + r.rating, 0) / product.reviews.length;
+        product.rating = Math.round((avg + Number.EPSILON) * 10) / 10; // one decimal
+
+        await product.save();
+
+        return res.status(201).json({ message: 'Review added', reviews: product.reviews, rating: product.rating, numReviews: product.numReviews });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = {getProducts, getProductById, createProduct, updateProduct, deleteProduct, checkPurchase, addReview};

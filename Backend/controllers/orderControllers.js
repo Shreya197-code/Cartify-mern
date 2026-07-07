@@ -95,7 +95,9 @@ const myOrders = async (req, res) => {
         console.log("req.user =", req.user);
 
         const orders = await Order
-            .find({ user: req.user.id });
+            .find({ user: req.user.id })
+            .populate('items.productId', 'name imageUrl price')
+            .sort({ createdAt: -1 });
 
         console.log("orders =", orders);
 

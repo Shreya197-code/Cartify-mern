@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 import Footer from "../components/Footer";
 
 const Register = () => {
@@ -24,14 +25,14 @@ const Register = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Registration successful! Please verify your email.");
+        toast.success("Registration successful! Please verify your email.");
         navigate("/login");
       } else {
-        alert(data.message || "Registration failed");
+        toast.error(data.message || "Registration failed");
       }
     } catch (error) {
       console.error(error);
-      alert("Something went wrong!");
+      toast.error("Something went wrong!");
     }
   };
 

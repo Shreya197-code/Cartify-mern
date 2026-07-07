@@ -24,7 +24,7 @@ const Register = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Registration successful!");
+        alert("Registration successful! Please verify your email.");
         navigate("/login");
       } else {
         alert(data.message || "Registration failed");

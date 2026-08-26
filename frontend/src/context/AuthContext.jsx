@@ -20,6 +20,7 @@ const login = (userData, token) => {
 
 const logout = () => {
   localStorage.removeItem("user");
+  localStorage.removeItem("cart");
   setUser(null);
 };
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="cartifyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="sparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#4F46E5" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background -->
+  <rect x="5" y="5" width="90" height="90" rx="26" fill="url(#cartifyGrad)" filter="url(#shadow)" />
+
+  <!-- Modern Sleek Shopping Bag Geometry -->
+  <!-- Handle -->
+  <path d="M38 42 V33 C38 26.37 43.37 21 50 21 C56.63 21 62 26.37 62 33 V42" 
+        stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.95"/>
+
+  <!-- Bag Body -->
+  <path d="M26 40 H74 L69 77 C68.5 80.5 65.5 83 62 83 H38 C34.5 83 31.5 80.5 31 77 L26 40 Z" 
+        fill="#FFFFFF" />
+
+  <!-- Dynamic AI Lightning / Shopping Spark inside Bag -->
+  <path d="M52 46 L43 59 H50 L47 73 L58 58 H51 L55 46 Z" 
+        fill="url(#sparkleGrad)" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round" />
+</svg>

@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useContext } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { addToCart, removeFromCart } from "../redux/cartSlice";
+import { AuthContext } from "../context/AuthContext";
 
 const Cart = () => {
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
   const cartItems = useSelector((state) => state.cart.cartItems);
 
   const updateQuantity = (item, newQuantity) => {
@@ -25,6 +27,38 @@ const Cart = () => {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const shipping = subtotal > 0 ? 99 : 0;
   const total = subtotal + shipping;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 text-center shadow-lg">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl mb-4">
+            🔒
+          </div>
+          <h2 className="text-2xl font-black text-gray-900">
+            Please Log In
+          </h2>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+            You must be signed in to your Cartify account to view and manage your shopping cart.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link
+              to="/login"
+              className="w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 transition"
+            >
+              Log In to Continue
+            </Link>
+            <Link
+              to="/register"
+              className="w-full rounded-2xl border border-gray-200 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+            >
+              Create an Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">

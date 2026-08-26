@@ -25,8 +25,8 @@ const Register = () => {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Registration successful! Please verify your email.");
-        navigate("/login");
+        toast.success("Registration initiated! Enter the OTP sent to your email.");
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`, { state: { email } });
       } else {
         toast.error(data.message || "Registration failed");
       }

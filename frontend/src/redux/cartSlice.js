@@ -8,27 +8,38 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-   addToCart: (state, action) => {
-  const item = {
-    ...action.payload,
-    _id: action.payload._id || action.payload.productId,
-  };
+    addToCart: (state, action) => {
+      const payload = action.payload;
+      const itemId = payload._id || payload.productId;
+      const qtyToAdd = Number(payload.qty || payload.quantity || 1);
 
-  const existItem = state.cartItems.find(
-    (x) => x._id === item._id
-  );
+      const existItem = state.cartItems.find((x) => x._id === itemId);
 
-  if (existItem) {
-    state.cartItems = state.cartItems.map((x) =>
-      x._id === existItem._id ? item : x
-    );
-  } else {
-    state.cartItems.push(item);
-  }
+      if (existItem) {
+        state.cartItems = state.cartItems.map((x) =>
+          x._id === itemId
+            ? { ...x, ...payload, _id: itemId, qty: payload.qty ? Number(payload.qty) : (x.qty || 1) + qtyToAdd }
+            : x
+        );
+      } else {
+        state.cartItems.push({
+          ...payload,
+          _id: itemId,
+          qty: qtyToAdd,
+        });
+      }
 
-  localStorage.setItem("cart", JSON.stringify(state.cartItems));
-},
+      localStorage.setItem("cart", JSON.stringify(state.cartItems));
+    },
 
+    updateCartQuantity: (state, action) => {
+      const { id, qty } = action.payload;
+      if (qty < 1) return;
+      state.cartItems = state.cartItems.map((item) =>
+        item._id === id ? { ...item, qty: Number(qty) } : item
+      );
+      localStorage.setItem("cart", JSON.stringify(state.cartItems));
+    },
 
     removeFromCart: (state, action) => {
       state.cartItems = state.cartItems.filter(
@@ -44,6 +55,6 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, updateCartQuantity, removeFromCart, clearCart } = cartSlice.actions;
 
 export default cartSlice.reducer;

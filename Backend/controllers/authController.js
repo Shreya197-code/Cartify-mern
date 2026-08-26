@@ -28,46 +28,82 @@ const serverError = (res, error) => {
 // ================= REGISTER =================
 
 const registerUser = async (req, res) => {
-
     const { username, email, password } = req.body;
 
     try {
-        const existingUser = await User.findOne({
-            $or: [{ email }, { username }]
-        });
+        const normalizedEmail = email.toLowerCase().trim();
+        const trimmedUsername = username.trim();
 
-        if (existingUser) {
+        // Check if a user with this email or username already exists
+        const existingEmailUser = await User.findOne({ email: normalizedEmail });
+        const existingUsernameUser = await User.findOne({ username: trimmedUsername });
+
+        // If email is already verified
+        if (existingEmailUser && existingEmailUser.verified) {
             return res.status(400).json({
-                message: 'User already exists'
+                message: 'An account with this email already exists. Please log in.'
+            });
+        }
+
+        // If username is already taken by a verified user
+        if (existingUsernameUser && existingUsernameUser.verified && existingUsernameUser.email !== normalizedEmail) {
+            return res.status(400).json({
+                message: 'This username is already taken. Please choose a different username.'
             });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
         const otp = generateOtp();
+        const hashedOtpValue = hashOtp(otp);
+        const otpExpiryTime = Date.now() + 10 * 60 * 1000; // 10 mins
 
-        const user = await User.create({
-            username,
-            email,
-            password: hashedPassword,
-            otp: hashOtp(otp),
-            otpExpiry: Date.now() + 10 * 60 * 1000
-        });
+        let user;
+        if (existingEmailUser && !existingEmailUser.verified) {
+            // User registered previously but did not complete OTP verification: update record with new OTP & password
+            existingEmailUser.username = trimmedUsername;
+            existingEmailUser.password = hashedPassword;
+            existingEmailUser.otp = hashedOtpValue;
+            existingEmailUser.otpExpiry = otpExpiryTime;
+            user = await existingEmailUser.save();
+        } else {
+            // Create new user
+            user = await User.create({
+                username: trimmedUsername,
+                email: normalizedEmail,
+                password: hashedPassword,
+                otp: hashedOtpValue,
+                otpExpiry: otpExpiryTime
+            });
+        }
 
-        const message = `Welcome to Cartify ${username}!
-Your OTP is: ${otp}`;
+        const message = `Welcome to Cartify, ${user.username}!
+Your verification OTP is: ${otp} (valid for 10 minutes).
+
+Enter this OTP to activate your account.`;
+
+        const htmlMessage = `
+<div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
+    <h2 style="color: #2563eb; margin-top: 0;">🛍️ Welcome to Cartify!</h2>
+    <p style="color: #334155; font-size: 15px;">Hi <strong>${user.username}</strong>,</p>
+    <p style="color: #334155; font-size: 15px;">Thank you for registering. Please use the following 6-digit OTP code to verify your email address:</p>
+    <div style="background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 16px; text-align: center; margin: 20px 0;">
+        <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1d4ed8;">${otp}</span>
+    </div>
+    <p style="color: #64748b; font-size: 13px;">This code is valid for 10 minutes. If you did not sign up for Cartify, please ignore this email.</p>
+</div>`;
+
+        // Prominently log the OTP to the console for instant testing
+        console.log(`\n========================================\n[CARTIFY REGISTRATION OTP]\nRecipient: ${user.email}\nCode: ${otp}\n========================================\n`);
 
         try {
             await sendEmail(
-                email,
-                'Welcome to Cartify',
-                message
+                user.email,
+                'Cartify - Your Verification OTP Code',
+                message,
+                htmlMessage
             );
         } catch (err) {
-            console.log(
-                'Email failed but user created:',
-                err.message
-            );
+            console.error('Email failed during registration:', err.message);
         }
 
         return res.status(201).json({
@@ -78,8 +114,7 @@ Your OTP is: ${otp}`;
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({
-                message:
-                    'Duplicate key error (user already exists)'
+                message: 'Username or email already in use. Please try a different one.'
             });
         }
 
@@ -348,13 +383,73 @@ const changePassword = async (req, res) => {
     }
 };
 
-    module.exports = {
-        registerUser,
-        loginuser,
-        verifyOtp,
-        getUser,
-        forgotPassword,
-        resetPassword,
-        updateProfile,
-        changePassword
-    };
+// ================= RESEND OTP =================
+
+const resendOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.verified) {
+            return res.status(400).json({ message: 'Email is already verified' });
+        }
+
+        const otp = generateOtp();
+        user.otp = hashOtp(otp);
+        user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        await user.save();
+
+        const message = `Hello ${user.username},
+Your new Cartify OTP is: ${otp} (valid for 10 minutes).`;
+
+        const htmlMessage = `
+<div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
+    <h2 style="color: #2563eb; margin-top: 0;">🛍️ Cartify Verification Code</h2>
+    <p style="color: #334155; font-size: 15px;">Hi <strong>${user.username}</strong>,</p>
+    <p style="color: #334155; font-size: 15px;">Here is your new 6-digit OTP code to verify your email:</p>
+    <div style="background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 16px; text-align: center; margin: 20px 0;">
+        <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1d4ed8;">${otp}</span>
+    </div>
+    <p style="color: #64748b; font-size: 13px;">This code is valid for 10 minutes.</p>
+</div>`;
+
+        // Prominently log the OTP to the console for instant testing
+        console.log(`\n========================================\n[CARTIFY RESEND OTP]\nRecipient: ${user.email}\nCode: ${otp}\n========================================\n`);
+
+        try {
+            await sendEmail(email, 'Cartify - New Verification OTP Code', message, htmlMessage);
+        } catch (err) {
+            console.error('Email failed during OTP resend:', err.message);
+        }
+
+        return res.status(200).json({
+            message: 'A new OTP has been sent to your email',
+            email: user.email
+        });
+
+    } catch (error) {
+        return serverError(res, error);
+    }
+};
+
+module.exports = {
+    registerUser,
+    loginuser,
+    verifyOtp,
+    resendOtp,
+    getUser,
+    forgotPassword,
+    resetPassword,
+    updateProfile,
+    changePassword
+};

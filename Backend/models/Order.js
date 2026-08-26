@@ -18,9 +18,20 @@ const orderSchema = new mongoose.Schema({
         country : {type:String , required:true}
 
       },
-      paymentId : {type:String },
-      status:{type:String , enum:['pending','shipped','delivered'],default:'pending'}
+      paymentId: { type: String },
+      paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed', 'refunded'],
+        default: 'pending'
+      },
+      paymentProvider: { type: String, default: 'stripe' },
+      providerSessionId: { type: String },
+      status: {
+        type: String,
+        enum: ['pending', 'shipped', 'delivered', 'cancelled', 'refunded'],
+        default: 'pending'
+      }
     },
-    {timestamps:true});
+    { timestamps: true });
 
-module.exports= mongoose.model('Order',orderSchema);
+module.exports = mongoose.model('Order', orderSchema);

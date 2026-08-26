@@ -35,7 +35,11 @@ const createOrder = async (req, res) => {
         await order.save();
 
         // Send Confirmation Email
-    const message = `
+        const formattedAddress = typeof address === 'object' && address !== null
+            ? `${address.fullName || ''}, ${address.street || ''}, ${address.city || ''}, ${address.postalCode || ''}, ${address.country || ''}`
+            : address;
+
+        const message = `
 Dear ${req.user.username},
 
 Thank you for shopping with Cartify.
@@ -50,7 +54,7 @@ Payment ID: ${paymentId || 'Cash on Delivery'}
 --------------------------------
 
 Shipping Address:
-${address}
+${formattedAddress}
 
 We will notify you once your order has been shipped.
 
@@ -83,10 +87,6 @@ Cartify Team
             error: error.message
         });
     }
-};
-
-module.exports = {
-    createOrder
 };
 
 //My orders

@@ -1,2 +1,7 @@
 node_modules/
 .env
+*.env
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+*.bak
+*.md

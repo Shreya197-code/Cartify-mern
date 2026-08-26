@@ -1,13 +1,76 @@
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const cloudinary=require('../config/cloudinary');
+const cloudinary = require('../config/cloudinary');
+const fs = require('fs');
+const { embedText } = require('../services/ai/aiService');
 
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({});
-        res.json(products);
-    } catch (error){
-        res.status(500).json({message: 'Server error'});
+        const {
+            keyword,
+            category,
+            minPrice,
+            maxPrice,
+            sort,
+            page = 1,
+            limit = 12
+        } = req.query;
+
+        const query = {};
+
+        // Keyword Search (Search in name, description, category)
+        if (keyword && keyword.trim() !== '') {
+            const searchRegex = new RegExp(keyword.trim(), 'i');
+            query.$or = [
+                { name: searchRegex },
+                { description: searchRegex },
+                { category: searchRegex }
+            ];
+        }
+
+        // Category Filter
+        if (category && category !== 'All' && category !== '') {
+            query.category = category;
+        }
+
+        // Price Range Filter
+        if (minPrice || maxPrice) {
+            query.price = {};
+            if (minPrice) query.price.$gte = Number(minPrice);
+            if (maxPrice) query.price.$lte = Number(maxPrice);
+        }
+
+        // Sorting
+        let sortOption = { createdAt: -1 }; // Default: newest
+        if (sort === 'price_asc') sortOption = { price: 1 };
+        else if (sort === 'price_desc') sortOption = { price: -1 };
+        else if (sort === 'rating') sortOption = { rating: -1 };
+        else if (sort === 'reviews') sortOption = { numReviews: -1 };
+        else if (sort === 'name_asc') sortOption = { name: 1 };
+
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.max(1, parseInt(limit, 10));
+        const skip = (pageNum - 1) * limitNum;
+
+        const total = await Product.countDocuments(query);
+        const products = await Product.find(query)
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limitNum);
+
+        const categories = await Product.distinct('category');
+
+        res.json({
+            success: true,
+            products,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum) || 1,
+            total,
+            categories
+        });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).json({ success: false, message: 'Server error fetching products', error: error.message });
     }
 };
 
@@ -25,50 +88,76 @@ const getProductById = async (req, res) => {
     }
 };
 
-const createProduct=async(req,res)=>{
-    const{name, description, price, category, stock} = req.body;
+const createProduct = async (req, res) => {
+    const { name, description, price, category, stock } = req.body;
     let imageUrl = '';
     try {
         if (req.file) {
             const result = await cloudinary.uploader.upload(req.file.path);
             imageUrl = result.secure_url;
         }
-        const product = new Product({name, description, price, category, stock, imageUrl});
+
+        // Generate embedding vector for semantic search
+        let embedding = [];
+        try {
+            embedding = await embedText(`${name || ''} ${description || ''} ${category || ''}`);
+        } catch (e) {
+            console.warn('Embedding generation skipped:', e.message);
+        }
+
+        const product = new Product({ name, description, price, category, stock, imageUrl, embedding });
         await product.save();
         res.status(201).json(product);
     } catch (error) {
-            console.log("CREATE PRODUCT ERROR:", error);
-        res.status(500).json({message: 'Server error', error: error.message});
+        console.log("CREATE PRODUCT ERROR:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    } finally {
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Failed to delete temp upload file:', err.message);
+            });
+        }
     }
-
 };
 
-const updateProduct = async (req,res)=>{
-    try{
-        const {name,description,price,category,stock}=req.body;
+const updateProduct = async (req, res) => {
+    try {
+        const { name, description, price, category, stock } = req.body;
         const product = await Product.findById(req.params.id);
-        if(product){
-            product.name=name||product.name;
-            product.description=description||product.description;
-            product.price=price||product.price;
-            product.category=category||product.category;
-            product.stock=stock||product.stock;
+        if (product) {
+            product.name = name || product.name;
+            product.description = description || product.description;
+            product.price = price || product.price;
+            product.category = category || product.category;
+            product.stock = stock || product.stock;
 
-            if(req.file){
-                const result= await cloudinary.uploader.upload(req.file.path);
-                console.log(result);
-                product.imageUrl=result.secure_url;
+            if (req.file) {
+                const result = await cloudinary.uploader.upload(req.file.path);
+                product.imageUrl = result.secure_url;
             }
-            const updatedProduct= await product.save();
+
+            // Refresh embedding
+            try {
+                product.embedding = await embedText(`${product.name} ${product.description} ${product.category}`);
+            } catch (e) {
+                console.warn('Embedding update skipped:', e.message);
+            }
+
+            const updatedProduct = await product.save();
             res.json(updatedProduct);
-        
         } else {
-            res.status(404).json({message: 'Product not found'});
+            res.status(404).json({ message: 'Product not found' });
         }
     } catch (error) {
-        res.status(500).json({message: 'Server error'});
+        res.status(500).json({ message: 'Server error' });
+    } finally {
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Failed to delete temp upload file:', err.message);
+            });
+        }
     }
-}
+};
 
 const deleteProduct =  async(req,res)=> {
     try{

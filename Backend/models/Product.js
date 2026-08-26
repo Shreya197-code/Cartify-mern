@@ -18,9 +18,17 @@ const productSchema = new mongoose.Schema({
             comment: { type: String },
             createdAt: { type: Date, default: Date.now }
         }
-    ]
+    ],
+    embedding: {
+        type: [Number],
+        select: false // Exclude from normal queries by default
+    }
+}, { timestamps: true });
 
-});
+// Text index for fast keyword search
+productSchema.index({ name: 'text', description: 'text', category: 'text' });
+productSchema.index({ category: 1, price: 1 });
+
 const Product = mongoose.model('Product', productSchema);
 module.exports = Product;
 

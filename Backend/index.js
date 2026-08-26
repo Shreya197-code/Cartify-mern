@@ -10,8 +10,22 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimitMiddleware');
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and auto-seed initial catalog if empty
+connectDB().then(async () => {
+    try {
+        if (process.env.NODE_ENV !== 'test') {
+            const Product = require('./models/Product');
+            const count = await Product.countDocuments();
+            if (count === 0) {
+                console.log('Database empty! Auto-seeding initial products...');
+                const { seedData } = require('./seedProducts');
+                await seedData();
+            }
+        }
+    } catch (err) {
+        console.warn('Initial seed check error:', err.message);
+    }
+});
 
 const app = express();
 
@@ -23,7 +37,7 @@ app.use(helmet({
             scriptSrc: ["'self'", "'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-            imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
+            imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://images.unsplash.com"],
             connectSrc: [
                 "'self'",
                 "https://res.cloudinary.com",

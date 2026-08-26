@@ -218,6 +218,30 @@ const sampleProducts = [
   }
 ];
 
+const seedData = async () => {
+  const dummyUserId = new mongoose.Types.ObjectId();
+  for (const item of sampleProducts) {
+    let embedding = [];
+    try {
+      embedding = await embedText(`${item.name} ${item.description} ${item.category}`);
+    } catch {
+      embedding = [];
+    }
+    const reviewsWithUser = (item.reviews || []).map(r => ({
+      ...r,
+      user: dummyUserId
+    }));
+
+    await Product.create({
+      ...item,
+      reviews: reviewsWithUser,
+      embedding
+    });
+    console.log(`Seeded: ${item.name} (${item.category})`);
+  }
+  console.log('\n✅ Successfully seeded demo products with images and AI vector embeddings!');
+};
+
 const seedDB = async () => {
   try {
     const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/cartify-mern';
@@ -228,24 +252,7 @@ const seedDB = async () => {
     await Product.deleteMany({});
     console.log('Cleared existing products.');
 
-    // Embed and insert products
-    const dummyUserId = new mongoose.Types.ObjectId();
-    for (const item of sampleProducts) {
-      const embedding = await embedText(`${item.name} ${item.description} ${item.category}`);
-      const reviewsWithUser = (item.reviews || []).map(r => ({
-        ...r,
-        user: dummyUserId
-      }));
-
-      await Product.create({
-        ...item,
-        reviews: reviewsWithUser,
-        embedding
-      });
-      console.log(`Seeded: ${item.name} (${item.category})`);
-    }
-
-    console.log('\n✅ Successfully seeded 12 premium products with images and AI vector embeddings!');
+    await seedData();
     process.exit(0);
   } catch (error) {
     console.error('Seeding error:', error);
@@ -253,4 +260,8 @@ const seedDB = async () => {
   }
 };
 
-seedDB();
+if (require.main === module) {
+  seedDB();
+}
+
+module.exports = { seedData, sampleProducts };

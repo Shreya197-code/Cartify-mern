@@ -1,6 +1,7 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,8 +15,28 @@ connectDB();
 
 const app = express();
 
-// Security Headers
-app.use(helmet());
+// Security Headers (configured with strict CSP allowing Cloudinary media & React SPA execution)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
+            connectSrc: [
+                "'self'",
+                "https://res.cloudinary.com",
+                "https://generativelanguage.googleapis.com",
+                "https://api.stripe.com"
+            ],
+            frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: []
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -67,7 +88,6 @@ const healthHandler = (req, res) => {
     });
 };
 
-app.get('/', (req, res) => res.send('Cartify Backend API is running'));
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 app.get('/api/v1/health', healthHandler);
@@ -100,7 +120,23 @@ app.use('/api/admin', analyticsRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/ai', aiRoutes);
 
-// Error Handling Middleware
+// Production Static Serving for Unified Full-Stack Deployment
+if (process.env.NODE_ENV === 'production') {
+    const frontendBuildPath = path.join(__dirname, '../frontend/build');
+    app.use(express.static(frontendBuildPath));
+
+    // Fallback for SPA client-side routing (Express 5 compatible)
+    app.use((req, res, next) => {
+        if (req.method === 'GET' && !req.originalUrl.startsWith('/api') && req.originalUrl !== '/health') {
+            return res.sendFile(path.join(frontendBuildPath, 'index.html'));
+        }
+        next();
+    });
+} else {
+    app.get('/', (req, res) => res.send('Cartify Backend API is running'));
+}
+
+// Error Handling Middleware (for unhandled API endpoints & exceptions)
 app.use(notFound);
 app.use(errorHandler);
 

@@ -16,21 +16,27 @@
   "license": "ISC",
   "author": "shreya sah",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "Backend/index.js",
   "scripts": {
-    "install": "cd backend && npm install && cd ../frontend && npm install",
-    "dev-server": "cd backend && npm run dev",
-    "dev:client": "cd frontend && npm start",
-    "dev": "concurrently \"npm run dev-server\" \"npm run dev:client\"",
-    "build": "cd frontend && npm run build"
+    "start": "node Backend/index.js",
+    "server": "npm run start --prefix Backend",
+    "client": "npm run start --prefix frontend",
+    "dev-server": "npm run dev --prefix Backend",
+    "dev-client": "npm run start --prefix frontend",
+    "dev": "concurrently \"npm run dev-server\" \"npm run dev-client\"",
+    "install:all": "npm install --prefix Backend && npm install --prefix frontend",
+    "build": "npm install --prefix Backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "test": "npm run test --prefix Backend"
   },
   "dependencies": {
-    "concurrently": "^10.0.3",
-    "react-router-dom": "^7.18.0"
+    "concurrently": "^10.0.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
